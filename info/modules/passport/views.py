@@ -208,12 +208,13 @@ def login():
     if user is None or not user.check_password(password):
         return jsonify(errno=RET.DATAERR, errmsg='用户名或密码错误')
     # 4. 保存用户登录状态
+
         session['user_id'] = user.id
         session['mobile'] = user.mobile
 
         session['nick_name'] = user.nick_name
 
-        user.last_login = datetime.now()
+        # user.last_login = datetime.now()
         try:
             db.session.add(user)
             db.session.commit()
