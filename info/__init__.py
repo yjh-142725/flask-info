@@ -67,4 +67,8 @@ def create_app(config_name):
         response.set_cookie("csrf_token", csrf_token)
         return response
 
+    from utils.common import do_index_class
+    app.add_template_filter(do_index_class, "indexClass")
+
+
     return app

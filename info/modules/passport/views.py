@@ -7,8 +7,9 @@ from info import redis_store, constants, db
 
 from info.models import User
 from utils.response_code import RET
+
 from . import passport_blu
-from utils.captcha.captcha import captcha
+from utils.captcha import captcha
 
 
 
@@ -133,9 +134,9 @@ def register():
     mobile = request.json.get('mobile')
     sms_code = request.json.get('smscode')
     password = request.json.get('password')
-    print("1",mobile)
-    print("2",password)
-    print("3",sms_code)
+    # print("1",mobile)
+    # print("2",password)
+    # print("3",sms_code)
     if not all([mobile,sms_code,password]):
         return jsonify(errno = RET.DATAERR,errmsg = "参数有误")
     if not re.match(r'1[3456789]\d{9}$', mobile):
@@ -199,6 +200,7 @@ def login():
     if not all([mobile,password]):
         return jsonify(errno = RET.DATAERR,errmsg = "")
     # 2. 从数据库查询出指定的用户
+    user = User()
     try:
         user = User.query.filter_by(mobile=mobile).first()
     except Exception as e:
@@ -209,19 +211,36 @@ def login():
         return jsonify(errno=RET.DATAERR, errmsg='用户名或密码错误')
     # 4. 保存用户登录状态
 
-        session['user_id'] = user.id
-        session['mobile'] = user.mobile
+        # session['user_id'] = user.id
+        # prin("123")
+    # session['mobile'] = user.mobile
+    #
+    # session['nick_name'] = user.nick_name
+    # user.last_login = datetime.now()
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+        return jsonify(errno=RET.DBERR, errmsg='保存数据失败')
+    session['mobile'] = user.mobile
 
-        session['nick_name'] = user.nick_name
-
-        # user.last_login = datetime.now()
-        try:
-            db.session.add(user)
-            db.session.commit()
-        except Exception as e:
-            current_app.logger.error(e)
-            db.session.rollback()
-            return jsonify(errno=RET.DBERR, errmsg='保存数据失败')
+    session['nick_name'] = user.nick_name
+    session["user_id"] = user.id
 
     # 5. 登录成功返回
     return jsonify(errno = RET.OK, errmsg = '登陆成功')
+
+@passport_blu.route("/logout", methods=['POST'])
+def logout():
+    """
+    清除session中的对应登录之后保存的信息
+    :return:
+    """
+    # 返回结果
+    session.pop("user_id",None)
+    session.pop("mobile",None)
+    session.pop("nick_name",None)
+
+    return jsonify(errno=RET.OK,errmsg=RET.OK)

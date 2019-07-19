@@ -21,14 +21,12 @@
                 <li data-cid="4"><a href="javascript:;">外汇</a></li>
                 <li data-cid="5"><a href="javascript:;">公司</a></li>
             </ul>
-
-
         {# 判断用户是否登录 #}
         {% if data.user %}
             {# 如果登录，则显示用户信息 #}
             <div class="user_login fr">
                 <img src="
-                        {% if data.user.avatar_url %}{{ data.user.avatar_url }}{% else %}.static/news/images/person01.png{% endif %}"
+                        {% if data.user.avatar_url %}{{ data.user.avatar_url }}{% else %}../../static/news/images/person01.png{% endif %}"
                      class="lgin_pic">
                 <a href="#">{{ data.user.nick_name }}</a>
                 <a href="#">退出</a>
@@ -42,6 +40,7 @@
         {% endif %}
     </div>
 </div>
+
 
 
     <div class="conter_con">

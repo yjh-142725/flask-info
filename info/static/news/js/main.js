@@ -178,6 +178,9 @@ $(function () {
         $.ajax({
             url: "/passport/register",
             type: "post",
+            headers: {
+                "X-CSRFToken": getCookie("csrf_token")
+            },
             data: JSON.stringify(params),
             contentType: "application/json",
             success: function (resp) {
@@ -317,4 +320,19 @@ function generateImageCode() {
     // 给图片验证码img设置src属性
     $('.get_pic_code').attr('src', url)
 
+}
+    // 登出
+function logout() {
+    $.ajax({
+        url: "/passport/logout",
+        type: "post",
+        contentType: "application/json",
+        headers: {
+            "X-CSRFToken": getCookie("csrf_token")
+        },
+        success: function (resp) {
+            // 刷新当前界面
+            location.reload()
+        }
+    })
 }
