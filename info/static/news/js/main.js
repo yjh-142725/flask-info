@@ -318,6 +318,7 @@ function generateImageCode() {
     // 生成url
     var url = '/passport/image_code?image_Code=' + imageCodeId
     // 给图片验证码img设置src属性
+    // language=JQuery-CSS
     $('.get_pic_code').attr('src', url)
 
 }
