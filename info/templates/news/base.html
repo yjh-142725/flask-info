@@ -67,7 +67,7 @@
             </div>
             <ul class="rank_list">
                 {% for new in data.news_dict %}
-                    <li><span class="{{ loop.index0 | index_class }}">{{ loop.index }}</span><a
+                    <li><span class="{{ loop.index0 | indexClass }}">{{ loop.index }}</span><a
                             href="#">{{ new.title }}</a>
                     </li>
                 {% endfor %}
