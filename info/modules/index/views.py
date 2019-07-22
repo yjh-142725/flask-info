@@ -137,6 +137,6 @@ def news_list():
         'total_page': total_page,
         'news_dict_list': news_dict_list,
     }
-    # print('*'*50)
+
     # 返回结果
     return jsonify(errno=RET.OK, errmsg='OK', data=data)

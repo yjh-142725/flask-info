@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block titleBlock %}{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static',filename='news/favicon.ico') }}">
     <link rel="stylesheet" type="text/css" href="../../static/news/css/reset.css">
     {% block cssBlock %}
     {% endblock %}
