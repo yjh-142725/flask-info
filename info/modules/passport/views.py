@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import random
 import re
 from flask import request, current_app, abort, make_response, jsonify, session
@@ -153,6 +153,10 @@ def login():
     session['user_id'] = user.id
     session['user_name'] = user.nick_name
     session['user_mobile'] = user.mobile
+
+    # user.last_login = datetime.now()
+    # db.session.add(user)
+    # db.session.commit()
 
     # 4.返回注册结果
     return jsonify(errno=RET.OK, errmsg='登录成功')

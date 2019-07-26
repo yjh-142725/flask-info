@@ -125,6 +125,9 @@ $(function () {
 
         data: JSON.stringify(params),
         contentType: "application/json",
+        headers:{
+                'X-CSRFToken': getCookie('csrf_token')
+            },
         success: function (resp) {
             if (resp.errno == "0") {
                 // 刷新当前界面

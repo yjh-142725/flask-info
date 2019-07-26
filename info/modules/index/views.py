@@ -71,26 +71,33 @@ def index():
     #     }
     # return render_template("news/index.html",data = data)
 
-    # demo
+
     user = g.user
 
-    news_click_list = News.query.order_by(News.clicks.desc()).limit(CLICK_RANK_MAX_NEWS).all()
+    # 右侧的新闻排行榜
+    news_list = None
+    try:
+        news_list = News.query.order_by(News.clicks.desc()).limit(constants.CLICK_RANK_MAX_NEWS)
+    except Exception as e:
+        current_app.logger.error(e)
     click_news_list = []
-    for news in news_click_list if news_click_list else []:
-        click_news_list.append(news.to_dict())
+    for news in news_list if news_list else []:
+        click_news_list.append(news.to_basic_dict())
 
-    # print(click_news_list)
-
-    category_list = Category.query.all()
-    # print(category_list)
-    categories = []
-    for category in category_list if category_list else []:
-        categories.append(category.to_dict())
+    # 新闻分类页面
+    # (1)获取新闻分类
+    categories = Category.query.all()
+    # (2)定义列表保存分类
+    categories_dicts = []
+    for category in categories:
+        # 拼接内容
+        categories_dicts.append(category.to_dict())
 
     data = {
-        'user_info': user.to_dict() if user else None,
+
+        'user': user.to_dict() if user else None,
         'news_dict': click_news_list,
-        'category_list': categories,
+        'category_list': categories_dicts,
     }
 
     return render_template('news/index.html', data=data)
@@ -104,39 +111,63 @@ def news_list():
     """
 
     # 获取当前参数，并指定默认为最新分类，第一页，一页显示10条数据
+    # cid = int(request.args.get('cid', 1))
+    # page = int(request.args.get('page', 1))
+    # per_page = int(request.args.get('per_page', 10))
+    #
+    # if not all([cid, per_page]):
+    #     return jsonify(errno=RET.PARAMERR, errmsg='请输入参数')
+    # filter = [News.status == 0]
+    # if cid != 1:
+    #     filter.append(News.category_id == cid)
+    # paginate = News.query.filter(*filter).order_by(News.create_time.desc()).paginate(page, per_page, False)
+    # items = paginate.items
+    # current_page = paginate.page
+    # total_page = paginate.pages
+    # news_dict_list = []
+    # for item in items:
+    #     news_dict_list.append(item.to_dict())
+    # data = {
+    #     'current_page': current_page,
+    #     'total_page': total_page,
+    #     'news_dict_list': news_dict_list,
+    # }
+
+    # 1.获取参数
+    page = request.args.get('p', '1')
+    per_page = request.args.get('per_page', constants.HOME_PAGE_MAX_NEWS)
+    category_id = request.args.get('cid', '1')
+    # 2.检验参数
     try:
-        cid = int(request.args.get('cid',"1"))
-        page = int(request.args.get('page',"1"))
-    except:
-        data = {
-            'current_page': 1,
-            'total_page': 1,
-            'news_dict_list': [],
-        }
-        return jsonify(data=data,errno=RET.PARAMERR,errmsg="参数类型异常")
+        page = int(page)
+        per_page = int(per_page)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
+    # 3.查询数据并分页
+    filters = []
+    #   如果分类id不为1,那么添加分类伪id的过滤
+    if category_id != '1':
+        filters.append(News.category_id == category_id)
+    try:
+        paginate = News.query.filter(*filters).order_by(News.create_time.desc()).paginate(page, per_page, False)
+        items = paginate.items
+        total_page = paginate.pages
+        current_page = paginate.page
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据查询失败")
 
-    # 校检参数
-    if not all([cid,page]):
-        return jsonify(errno=RET.PARAMERR, errmsg='请输入参数')
-    filter = [News.status == 0]
-    if cid != 1:
-        filter.append(News.category_id == cid)
-
-    # 查询数据
-    paginate = News.query.order_by(News.create_time.desc()).paginate(page, constants.HOME_PAGE_MAX_NEWS, False)
-    items = paginate.items
-    current_page = paginate.page
-    total_page = paginate.pages
-
-    # 将模型对象转换成字典列表
-    news_dict_list = []
-    for item in items:
-        news_dict_list.append(item.to_dict())
-    data = {
-        'current_page': current_page,
-        'total_page': total_page,
-        'news_dict_list': news_dict_list,
-    }
-
+    news_li = []
+    for news in items:
+        news_li.append(news.to_basic_dict())
     # 返回结果
+    data = {
+        'total_page' : total_page ,
+        'current_page' : current_page ,
+        'news_dict_list':  news_li ,
+        'cid' : category_id ,
+    }
     return jsonify(errno=RET.OK, errmsg='OK', data=data)
+
+
