@@ -1,15 +1,101 @@
 import storage as storage
-from flask import render_template, g, request, jsonify, current_app, session
+from flask import render_template, g, request, jsonify, current_app, session, abort
 from werkzeug.utils import redirect
 
 from info import db, constants
-from info.models import Category, News
+from info.models import Category, News, User
 from info.modules import news
 from info.modules.index import index_blu
 from utils.common import user_login_data
 from utils.response_code import RET
 from . import profile_blu
 from info.constants import *
+
+
+
+@profile_blu.route('/other_info')
+@user_login_data
+def other_info():
+    user = g.user
+
+    # 去查询其他人的用户信息
+    other_id = request.args.get("user_id")
+
+    if not other_id:
+        abort(404)
+
+    # 查询指定id的用户信息
+    other = None
+    try:
+        other = User.query.get(other_id)
+    except Exception as e:
+        current_app.logger.error(e)
+
+    if not other:
+        abort(404)
+
+    # 判断当前登录用户是否关注过该用户
+    is_followed = False
+    if other and user:
+        if other in user.followed:
+            is_followed = True
+
+    data = {
+        "is_followed": is_followed,
+        "user": g.user.to_dict() if g.user else None,
+        "other_info": other.to_dict()
+    }
+    return render_template('news/other.html', data=data)
+
+
+
+@profile_blu.route('/other_news_list')
+def other_news_list():
+    """返回指定用户的发布的新闻"""
+
+    # 1. 取参数
+    other_id = request.args.get("user_id")
+    page = request.args.get("p", 1)
+
+    # 2. 判断参数
+    try:
+        page = int(page)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
+
+    try:
+        other = User.query.get(other_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据查询失败")
+
+    if not other:
+        return jsonify(errno=RET.NODATA, errmsg="当前用户不存在")
+
+    try:
+        paginate = other.news_list.paginate(page, constants.USER_COLLECTION_MAX_NEWS, False)
+        # 获取当前页数据
+        news_li = paginate.items
+        # 获取当前页
+        current_page = paginate.page
+        # 获取总页数
+        total_page = paginate.pages
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据查询失败")
+
+    news_dict_list = []
+    for news_item in news_li:
+        news_dict_list.append(news_item.to_basic_dict())
+
+    data = {
+        "news_list": news_dict_list,
+        "total_page": total_page,
+        "current_page": current_page
+    }
+    return jsonify(errno=RET.OK, errmsg="OK", data=data)
+
 
 
 @profile_blu.route('/user_follow')
@@ -87,70 +173,44 @@ def user_news_list():
 def news_release():
     """发布新闻"""
 
-    # GET请求
     user = g.user
-    print(user,'发布新闻')
-        # 1. 加载新闻分类数据
-    if request.method == 'GET':
+    if request.method == "GET":
+        if not user:
+            return redirect('/')
+        category_list = Category.query.all()
         categories = []
-        try:
-            categories = Category.query.all()
-        except Exception as e:
-            current_app.logger.error(e)
-        categories_list = []
-        for category in categories:
-            categories_list.append(category.to_dict())
-        # 2. 移除最新分类
-        categories_list.pop(0)
+        for category in category_list if category_list else []:
+            categories.append(category.to_dict())
+        categories.pop(0)
         data = {
-            'categories':categories_list
+            'categories': categories,
         }
-        # 返回数据
         return render_template('news/user_news_release.html', data=data)
 
-    else:
-        # 1. 获取要提交的数据
-        title = request.form.get('title')
-        category_id = request.form.get('category_id')
-        digest = request.form.get('digest')
-        # TODO 等待七牛云
-        index_image = request.files.get('index_image')
-        content = request.form.get('content')
-        source = "个人发布"
-        # 校验参数
-        if not all([title, source, digest, content,index_image,category_id]):
-            return jsonify(errno=RET.PARAMERR, errmsg="参数有误")
+    title = request.form.get('title')
+    category_id = request.form.get('category_id')
+    digest = request.form.get('digest')
+    # index_image = request.files.get('index_image')
+    content = request.form.get('content')
+    print(title,category_id,digest,content)
+    if not all([title, category_id, digest, content]):
+        return jsonify(errno=RET.PARAMERR, errmsg='请输入参数')
+    # image = index_image.read()
+    # key_url = storage(image)
+    news = News()
+    print(content)
+    news.title = title
+    news.source = '个人用户'
+    news.user_id = user.id
+    news.status = 1
+    news.category_id = category_id
+    news.digest = digest
+    # news.index_image_url = QINIU_DOMIN_PREFIX + key_url
+    news.content = content
+    db.session.add(news)
+    db.session.commit()
+    return jsonify(errno=RET.OK, errmsg='发布新闻成功')
 
-            # 3.取到图片，将图片上传到七牛云
-
-        index_image_data = index_image.read()
-            # 上传到七牛云
-        key = storage(index_image_data)
-
-
-
-        # 保存数据
-        news = News()
-        news.title = title
-        news.digest = digest
-        news.source = source
-        news.content = content
-        # news.index_image_url = constants.QINIU_DOMIN_PREFIX + key
-        news.category_id = category_id
-        news.user_id = g.user.id
-        # 新闻状态,将新闻设置为1代表待审核状态
-        news.status = 1
-        # 手动设置新闻状态,在返回前commit提交
-        try:
-            db.session.add(news)
-            db.session.commit()
-        except Exception as e:
-            current_app.logger.error(e)
-            db.session.rollback()
-            return jsonify(errno=RET.DBERR, errmsg='保存数据失败')
-
-    # 返回
-        return jsonify(errno=RET.OK, errmsg='发布成功，正在等待审核')
 
 
 @profile_blu.route('/collection')

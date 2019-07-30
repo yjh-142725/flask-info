@@ -18,6 +18,8 @@
     <div class="detail_about clearfix">
         <span class="time_souce fl">{{ data.news.create_time }} 来源: {{ data.news.source }}</span>
         <span class="comment fr">{{ data.news.comments_count }}</span>
+
+
     </div>
     {{ data.news.content | safe }}
     <a href="javascript:;" class="collected block-center" data-newid="{{ data.news.id }}" style="display: {% if data.is_collected %} block
@@ -106,7 +108,7 @@
             <a href="/user/other_info?id={{ data.news.author.id }}" class="author_pic"><img src="{% if data.news.author.avatar_url %}
             {{ data.news.author.avatar_url }}
             {% else %}
-            ../../static/news/images/user_pic.png
+            static/news/images/user_pic.png
             {% endif %}" alt="author_pic"></a>
             <a href="/user/other_info?id={{ data.news.author.id }}" class="author_name">{{ data.news.author.nick_name }}</a>
             <div class="author_resume">签名：{{ data.news.author.signature }}</div>
@@ -119,3 +121,4 @@
                     class="out">已关注</span><span class="over">取消关注</span></a>
         </div>
 {% endblock %}
+

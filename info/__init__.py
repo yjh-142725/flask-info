@@ -61,6 +61,9 @@ def create_app(config_name):
     from .modules.profile import profile_blu
     app.register_blueprint(profile_blu)
 
+    from .modules.admin import admin_blu
+    app.register_blueprint(admin_blu)
+
     from utils.common import do_index_class
     app.add_template_filter(do_index_class, "indexClass")
 

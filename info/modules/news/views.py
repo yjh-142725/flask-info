@@ -93,6 +93,7 @@ def news_collect():
         return jsonify(errno=RET.DBERR, errmsg="保存失败")
     return jsonify(errno=RET.OK, errmsg="操作成功")
 
+
 @news_blu.route('/news_comment', methods=["POST"])
 @user_login_data
 def add_news_comment():
@@ -199,53 +200,32 @@ def comment_like():
     # 返回结果
     return jsonify(errno = RET.OK,errmsmg = '操作成功')
 
+
+
 @news_blu.route('/followed_user', methods=["POST"])
 @user_login_data
 def followed_user():
     """关注或者取消关注用户"""
 
     # 获取自己登录信息
+
     user = g.user
-
     if not user:
-        return jsonify(errno=RET.SESSIONERR, errmsg="未登录")
-
-    # 获取参数
-    user_id = request.args.get("user_id")
-    action = request.args.get("action")
-
-    # 判断参数
-    if not all([user_id, action]):
-        return jsonify(errno=RET.PARAMERR, errmsg="参数错误1")
-
-    if action not in ("follow", "unfollow"):
-        return jsonify(errno=RET.PARAMERR, errmsg="参数错误2")
-    print(user, '关注')
-    # 获取要被关注的用户
-    try:
-        other = User.query.get(user_id)
-    except Exception as e:
-        current_app.logger.error(e)
-        return jsonify(errno=RET.DBERR, errmsg="数据查询错误")
-
-    if not other:
-        return jsonify(errno=RET.NODATA, errmsg="未查询到数据")
-
-    if other.id == user.id:
-        return jsonify(errno=RET.PARAMERR, errmsg="请勿关注自己")
-
-    # 根据要执行的操作去修改对应的数据
-    if action == "follow":
-        if other not in user.followed:
-            # 当前用户的关注列表添加一个值
-            user.followed.append(other)
+        return jsonify(errno=RET.SESSIONERR, errmsg='请先登录')
+    action = request.json.get('action')
+    other_id = request.json.get('user_id')
+    if not all([action, other_id]):
+        return jsonify(errno=RET.PARAMERR, errmsg='请输入参数')
+    other_user = User.query.get(other_id)
+    if action == 'follow':
+        if other_user not in user.followed:
+            user.followed.append(other_user)
         else:
-            return jsonify(errno=RET.DATAEXIST, errmsg="当前用户已被关注")
+            return jsonify(errno=RET.PARAMERR, errmsg='已经关注过了')
     else:
-        # 取消关注
-        if other in user.followed:
-            user.followed.remove(other)
+        if other_user in user.followed:
+            user.followed.remove(other_user)
         else:
-            return jsonify(errno=RET.DATAEXIST, errmsg="当前用户未被关注")
-
-    return jsonify(errno=RET.OK, errmsg="操作成功")
+            return jsonify(errno=RET.PARAMERR, errmsg='已经取消关注过了')
+    db.session.commit()
+    return jsonify(errno=RET.OK, errmsg='OK')
