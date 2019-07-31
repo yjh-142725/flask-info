@@ -304,11 +304,27 @@ def pic_info():
 
     user = g.user
     print(user,"图片上传")
-
+    if request.method == "GET":
+        if not user:
+            return redirect('/')
+        data = {
+            'user_info': user.to_dict() if user else None
+        }
+        return render_template('news/user_pic_info.html', data=data)
+    avatar = request.files.get('avatar')
+    if not avatar:
+        return jsonify(errno=RET.PARAMERR, errmsg='请传入图片')
+    image = avatar.read()
+    key = storage(image)
+    if not key:
+        return jsonify(errno=RET.THIRDERR, errmsg='第三方系统出现问题')
+    user.avatar_url = key
+    db.session.commit()
     data = {
-        "user_info": user.to_dict()
+        'avatar_url': QINIU_DOMIN_PREFIX + key
     }
-    return render_template('news/user_pic_info.html', data=data)
+    return jsonify(errno=RET.OK, errmsg='设置成功', data=data)
+    # return render_template('news/user_pic_info.html', data=data)
 
 
 @profile_blu.route('/base_info',methods = ['GET','POST'])
