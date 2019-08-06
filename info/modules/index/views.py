@@ -23,7 +23,7 @@ def index():
     # if user_id:
     #     try:
     #         uer = user.query.get(user_id)
-    #         print(uer)
+    #
     #     except BaseException as e:
     #         current_app.logger.error(e)
     #

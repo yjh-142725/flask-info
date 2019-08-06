@@ -1,6 +1,6 @@
 from flask import Blueprint, session, request, url_for, redirect
 
-admin_blu = Blueprint('admin_blu',__name__,url_prefix='')
+admin_blu = Blueprint('admin',__name__,url_prefix='/admin')
 
 @admin_blu.before_request
 def check_admin():
